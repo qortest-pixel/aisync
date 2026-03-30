@@ -1,0 +1,4 @@
+.gh_token
+*.token
+.env
+.ai-sync-token
