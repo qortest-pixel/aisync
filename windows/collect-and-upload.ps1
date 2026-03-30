@@ -1,3 +1,4 @@
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
 $ErrorActionPreference = "SilentlyContinue"
 $TODAY = Get-Date -Format "yyyy-MM-dd"
 $TS = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
@@ -16,7 +17,7 @@ if (Test-Path $cDir) {
         $proj = $_.Name
         Get-ChildItem $_.FullName -Filter "*.jsonl" | ForEach-Object {
             $msgs = @(); $sid = $_.BaseName
-            Get-Content $_.FullName | ForEach-Object {
+            [IO.File]::ReadAllLines($_.FullName, [Text.Encoding]::UTF8) | ForEach-Object {
                 try { $m = $_ | ConvertFrom-Json
                     if ($m.type -in @("user","assistant")) {
                         $c = if ($m.message.content -is [array]) { ($m.message.content | ? {$_.type -eq "text"} | % {$_.text}) -join " " } else { "$($m.message.content)" }
@@ -32,7 +33,7 @@ if (Test-Path $cDir) {
 $gDir = "$env:USERPROFILE\.gemini\tmp\workspace\chats"
 if (Test-Path $gDir) {
     Get-ChildItem $gDir -Filter "*.json" | ForEach-Object {
-        try { $d = Get-Content $_.FullName -Raw | ConvertFrom-Json; $msgs = @()
+        try { $d = [IO.File]::ReadAllText($_.FullName, [Text.Encoding]::UTF8) | ConvertFrom-Json; $msgs = @()
             foreach ($msg in $d.messages) { $t=""; foreach ($p in $msg.parts) { if ($p.text) {$t+=$p.text} }; if ($t) { $msgs += @{type=$msg.type; content=$t.Substring(0,[Math]::Min($t.Length,500))} } }
             if ($msgs.Count -gt 0) { $sessions += @{source="antigravity"; session_id=$d.sessionId; messages=@($msgs|Select -Last 10)} }
         } catch {}
@@ -41,7 +42,8 @@ if (Test-Path $gDir) {
 
 $report = @{date=$TODAY; machine="windows"; collected_at=$TS; hostname=$env:COMPUTERNAME; total=$sessions.Count; sessions=$sessions}
 $json = $report | ConvertTo-Json -Depth 10 -Compress
-$b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+$bytes = [Text.Encoding]::UTF8.GetBytes($json)
+$b64 = [Convert]::ToBase64String($bytes)
 
 Write-Host "$($sessions.Count) sessions. Uploading..." -ForegroundColor Cyan
 $h = @{Authorization="token $token"; "Content-Type"="application/json"}
