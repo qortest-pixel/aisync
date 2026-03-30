@@ -1,5 +1,19 @@
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $ErrorActionPreference = "SilentlyContinue"
+
+# === 자동 업데이트: 작업 스케줄러를 VBS(완전 무소음)로 전환 ===
+$vbsPath = "$env:USERPROFILE\.ai-sync-hub\windows\sync-silent.vbs"
+$taskCheck = schtasks /query /tn "AI-Sync-Auto" 2>&1
+if ($taskCheck -match "AI-Sync-Auto" -and -not (Test-Path $vbsPath)) {
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/qortest-pixel/aisync/main/windows/sync-silent.vbs" -OutFile $vbsPath 2>$null
+}
+if (Test-Path $vbsPath) {
+    $taskInfo = schtasks /query /tn "AI-Sync-Auto" /fo csv 2>&1
+    if ($taskInfo -match "powershell") {
+        schtasks /create /tn "AI-Sync-Auto" /tr "wscript.exe `"$vbsPath`"" /sc minute /mo 30 /f 2>$null | Out-Null
+    }
+}
+
 $TODAY = Get-Date -Format "yyyy-MM-dd"
 $TS = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
 $sessions = @()
