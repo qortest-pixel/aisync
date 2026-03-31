@@ -1,3 +1,8 @@
+# === 창 완전 숨김: 콘솔 창이 보이면 숨긴 상태로 재실행 ===
+Add-Type -Name Win32 -Namespace Native -MemberDefinition '[DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);' -ErrorAction SilentlyContinue
+$consoleHwnd = [Native.Win32]::GetConsoleWindow()
+if ($consoleHwnd -ne [IntPtr]::Zero) { [Native.Win32]::ShowWindow($consoleHwnd, 0) | Out-Null }
+
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $ErrorActionPreference = "SilentlyContinue"
 
@@ -9,9 +14,8 @@ if (-not (Test-Path $syncDir)) { New-Item -ItemType Directory -Path $syncDir -Fo
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/qortest-pixel/aisync/main/windows/sync-silent.vbs" -OutFile $vbsPath 2>$null
 # PS1도 최신으로 갱신
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/qortest-pixel/aisync/main/windows/collect-and-upload.ps1" -OutFile "$syncDir\collect-and-upload.ps1" 2>$null
-# 작업 스케줄러가 wscript 방식이 아니면 전환
-$taskXml = schtasks /query /tn "AI-Sync-Auto" /xml 2>&1
-if ($taskXml -and $taskXml -notmatch "wscript") {
+# 작업 스케줄러를 무조건 VBS 방식으로 재등록 (매번 덮어씀)
+if (Test-Path $vbsPath) {
     schtasks /create /tn "AI-Sync-Auto" /tr "wscript.exe `"$vbsPath`"" /sc minute /mo 30 /f 2>$null | Out-Null
 }
 
