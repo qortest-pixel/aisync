@@ -11,4 +11,5 @@ Else
     psPath = localPath
 End If
 
-WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File """ & psPath & """", 0, False
+' 완전 무소음: -WindowStyle Hidden + Run 0번 파라미터 (창 숨김)
+WshShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -NoLogo -NoProfile -File """ & psPath & """", 0, False
